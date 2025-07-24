@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şirket AI Asistanı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #333333 100%, #F94608 0%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: rgb(119, 119, 119);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #F94608, #F94608);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #929292;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-content {
+            background: #F94608;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: #929292;
+            border-top: 1px solid #000;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #929292;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #000;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .send-button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #333, #000);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 2px #F94608;
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 15px 20px;
+            background: #333;
+            border: 1px solid #333;
+            border-radius: 20px;
+            border-bottom-left-radius: 5px;
+            max-width: 70px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #333;
+            padding: 40px 20px;
+        }
+
+        .welcome-message h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .example-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .example-query {
+            background: #333;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: 1px solid #000;
+        }
+
+        .example-query:hover {
+            background: #696969;
+            transform: translateY(-1px);
+        }
+
+        .chart-container {
+            background: #333;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+
+        .chart-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 Barçın AI Asistanı</h1>
+            <p>Çalışan bilgileri ve departman sorguları için benimle konuş!</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <h2>Merhaba! 👋</h2>
+                <p>Size nasıl yardımcı olabilirim?</p>
+                <div class="example-queries">
+                    <span class="example-query" onclick="sendExample('Kaç çalışan var?')">Kaç çalışan var?</span>
+                    <span class="example-query" onclick="sendExample('IT departmanında kimler var?')">IT departmanında kimler var?</span>
+                    <span class="example-query" onclick="sendExample('Departman grafiği göster')">Departman grafiği göster</span>
+                    <span class="example-query" onclick="sendExample('Departman istatistikleri')">Departman istatistikleri</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Sorunuzu yazın..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()" class="send-button" id="sendButton">
+                    <span id="sendText">Gönder</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const sendText = document.getElementById('sendText');
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendExample(query) {
+            chatInput.value = query;
+            sendMessage();
+        }
+
+        function addMessage(content, isUser = false, chartData = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            
+            // Grafik ekle
+            if (chartData) {
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+                
+                const chartTitle = document.createElement('div');
+                chartTitle.className = 'chart-title';
+                chartTitle.textContent = chartData.title;
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 300;
+                
+                chartContainer.appendChild(chartTitle);
+                chartContainer.appendChild(canvas);
+                contentDiv.appendChild(chartContainer);
+                
+                // Chart.js ile grafik oluştur
+                setTimeout(() => {
+                    const ctx = canvas.getContext('2d');
+                    const colors = [
+                        '#4f46e5', '#7c3aed', '#059669', '#dc2626', 
+                        '#ea580c', '#0891b2', '#7c2d12', '#be185d'
+                    ];
+                    
+                    new Chart(ctx, {
+                        type: chartData.type,
+                        data: {
+                            labels: chartData.data.labels,
+                            datasets: [{
+                                data: chartData.data.data,
+                                backgroundColor: colors.slice(0, chartData.data.labels.length),
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 15,
+                                        usePointStyle: true
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }, 100);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.id = 'typingIndicator';
+            
+            const indicatorDiv = document.createElement('div');
+            indicatorDiv.className = 'typing-indicator';
+            indicatorDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+            
+            typingDiv.appendChild(indicatorDiv);
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        async function sendMessage() {
+            const query = chatInput.value.trim();
+            if (!query) return;
+
+            // Hide welcome message
+            const welcomeMessage = document.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'none';
+            }
+
+            // Add user message
+            addMessage(query, true);
+            
+            // Clear input and disable button
+            chatInput.value = '';
+            sendButton.disabled = true;
+            sendText.textContent = 'Gönderiliyor...';
+            
+            // Add typing indicator
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+                
+                // Remove typing indicator
+                removeTypingIndicator();
+
+                if (response.ok) {
+                    if (data.chart) {
+                        addMessage(data.response, false, data.chart);
+                    } else {
+                        addMessage(data.response);
+                    }
+                } else {
+                    addMessage(`Hata: ${data.error}`);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('Bağlantı hatası. Lütfen tekrar deneyin.');
+            } finally {
+                // Re-enable button
+                sendButton.disabled = false;
+                sendText.textContent = 'Gönder';
+                chatInput.focus();
+            }
+        }
+
+        // Focus input on page load
+        window.onload = function() {
+            chatInput.focus();
+        };
+    </script>
+</body>
+</html>
