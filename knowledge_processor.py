@@ -9,7 +9,7 @@ import pandas as pd
 import faiss
 from sentence_transformers import SentenceTransformer
 import pickle
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 
 class KnowledgeProcessor:
     def __init__(self, model_name='paraphrase-multilingual-MiniLM-L12-v2'):

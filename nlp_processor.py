@@ -5,7 +5,7 @@ SmartNLPProcessor - Doğal dil işleme ve niyet tahmini sınıfı.
 import re
 import pickle
 from difflib import SequenceMatcher
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 
 class SmartNLPProcessor:
     def __init__(self):
