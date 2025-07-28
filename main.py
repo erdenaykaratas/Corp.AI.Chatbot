@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 import re
 from typing import Dict, List, Optional, Union
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 
 from data_loader import UniversalDataLoader
 from knowledge_processor import KnowledgeProcessor
