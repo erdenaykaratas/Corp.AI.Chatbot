@@ -5,6 +5,7 @@ SmartNLPProcessor - Doğal dil işleme ve niyet tahmini sınıfı.
 import re
 import pickle
 from difflib import SequenceMatcher
+from fuzzywuzzy import fuzz
 
 class SmartNLPProcessor:
     def __init__(self):
@@ -25,6 +26,7 @@ class SmartNLPProcessor:
             'çalışan': ['personel', 'employee', 'kişi', 'people', 'worker', 'staff'],
             'departman': ['birim', 'department', 'bölüm', 'unit'],
             'maaş': ['salary', 'ücret', 'gelir', 'para', 'wage'],
+            'mağaza': ['store', 'şube', 'magaza']
         }
         
         # Intent patterns
@@ -44,11 +46,15 @@ class SmartNLPProcessor:
             ],
             'salary_analysis': [
                 ['maaş', 'analiz'], ['salary', 'average'], ['ortalama', 'maaş']
+            ],
+            'store_query': [
+                ['mağaza', 'satış'], ['store', 'verisi'], ['şube', 'büyüme']
             ]
         }
         
         # Learned patterns (kullanıcı etkileşimlerinden öğrenecek)
         self.learned_patterns = {}
+        self.store_names = {}  # Mağaza adlarını saklamak için
         self.load_learned_patterns()
     
     def save_learned_patterns(self):
@@ -69,6 +75,15 @@ class SmartNLPProcessor:
         except Exception as e:
             print(f"Öğrenilen pattern'ler yüklenemedi: {e}")
             self.learned_patterns = {}
+    
+    def add_store_names(self, store_names: list):
+        """Mağaza adlarını ekle"""
+        for name in store_names:
+            self.store_names[name] = name
+            # Basit varyasyonları ekle (örneğin, "Bodrum-nsp" için "Bodrum")
+            base_name = name.split('-')[0].strip()
+            if base_name != name:
+                self.store_names[base_name] = name
     
     def normalize_text(self, text):
         """Metni normalize et"""
@@ -91,7 +106,7 @@ class SmartNLPProcessor:
         """Varlık çıkarımı (NER)"""
         words = self.normalize_text(text).split()
         entities = {
-            'departments': [], 'actions': [], 'objects': [], 'names': []
+            'departments': [], 'actions': [], 'objects': [], 'names': [], 'stores': []
         }
         
         expanded_words = self.expand_synonyms(words)
@@ -108,6 +123,12 @@ class SmartNLPProcessor:
                 if word in self.synonyms.get(action, []) or word == action:
                     entities['actions'].append(action)
         
+        # Mağaza adlarını fuzzy eşleştirme ile çıkar
+        for word in text.split():
+            for store_name in self.store_names.keys():
+                if fuzz.partial_ratio(word.lower(), store_name.lower()) > 80:
+                    entities['stores'].append(self.store_names[store_name])
+        
         original_words = text.split()
         for word in original_words:
             if word.istitle() and len(word) > 2 and word.lower() not in ['hangi', 'kaç', 'tüm']:
@@ -122,7 +143,7 @@ class SmartNLPProcessor:
             max_score = 0
             for pattern in patterns:
                 score = 0
-                present_words = [word for word in pattern if word in entities['actions'] or word in entities['objects'] or word in entities['departments']]
+                present_words = [word for word in pattern if word in entities['actions'] or word in entities['objects'] or word in entities['departments'] or word in entities['stores']]
                 if len(present_words) > 0:
                     score = len(present_words) / len(pattern)
                 if score > max_score:
