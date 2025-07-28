@@ -17,6 +17,37 @@ from data_loader import UniversalDataLoader
 from knowledge_processor import KnowledgeProcessor
 from nlp_processor import SmartNLPProcessor
 
+# main.py'nin en başına ekleyin (import'lardan sonra)
+print("🔧 DEBUG: main.py başlatılıyor...")
+
+try:
+    from data_loader import UniversalDataLoader
+    print("✅ data_loader import edildi")
+except Exception as e:
+    print(f"❌ data_loader import hatası: {e}")
+
+try:
+    from knowledge_processor import KnowledgeProcessor  
+    print("✅ knowledge_processor import edildi")
+except Exception as e:
+    print(f"❌ knowledge_processor import hatası: {e}")
+
+try:
+    from nlp_processor import SmartNLPProcessor
+    print("✅ nlp_processor import edildi") 
+except Exception as e:
+    print(f"❌ nlp_processor import hatası: {e}")
+
+import os
+print(f"🔧 Çalışma dizini: {os.getcwd()}")
+print(f"🔧 Dizin içeriği: {os.listdir('.')}")
+
+if os.path.exists('company_data'):
+    print(f"✅ company_data klasörü mevcut")
+    print(f"📁 İçeriği: {os.listdir('company_data')}")
+else:
+    print("❌ company_data klasörü yok!")
+
 class UniversalAISystem:
     def __init__(self, data_directory: str):
         self.data_directory = data_directory
