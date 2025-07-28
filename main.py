@@ -491,7 +491,17 @@ CEVAP:"""
         }
 
 app = Flask(__name__)
-universal_system = None
+
+print("🌟 UNIVERSAL AI ASSISTANT BAŞLATILIYOR...")
+DATA_FOLDER = "company_data"
+universal_system = UniversalAISystem(DATA_FOLDER)
+
+if universal_system.knowledge_proc.index is not None:
+    print("✅ UNIVERSAL AI ASSISTANT HAZIR!")
+else:
+    # Bu mesajı görüyorsanız, Render'daki dosya yollarında veya dosya içeriğinde bir sorun olabilir.
+    print("❌ SISTEM BAŞLATILAMADI! Lütfen 'company_data' klasörünü ve dosyalarını kontrol edin.")
+
 
 @app.route('/')
 def index():
@@ -499,20 +509,22 @@ def index():
 
 @app.route('/api/status')
 def status():
-    global universal_system
+    # 'universal_system' artık global alanda tanımlandığı için 'global' anahtar kelimesine gerek yok.
     if universal_system is None:
         return jsonify({'error': 'Sistem henüz başlatılmadı'}), 503
     return jsonify(universal_system.get_system_status())
 
 @app.route('/api/query', methods=['POST'])
 def query():
-    global universal_system
+    # 'universal_system' artık global alanda tanımlandığı için 'global' anahtar kelimesine gerek yok.
     if universal_system is None or universal_system.knowledge_proc.index is None:
         return jsonify({'error': 'Sistem henüz hazır değil.'}), 503
+    
     data = request.get_json()
     user_query = data.get('query', '').strip()
     if not user_query:
         return jsonify({'error': 'Boş sorgu'}), 400
+    
     try:
         result = universal_system.process_universal_query(user_query)
         return jsonify(result)
@@ -520,35 +532,14 @@ def query():
         print(f"❌ Sorgu hatası: {e}")
         return jsonify({'error': f'Hata: {str(e)}'}), 500
 
+# Bu blok, dosyayı doğrudan `python main.py` ile çalıştırdığınızda (lokal geliştirme için) devreye girer.
+# Gunicorn gibi production sunucuları bu bloğu çalıştırmaz, bunun yerine yukarıdaki 'app' nesnesini kullanır.
 if __name__ == '__main__':
-    print("🌟 UNIVERSAL AI ASSISTANT BAŞLATILIYOR...")
-    print("=" * 80)
-    print("Bu sistem şu dosya türlerini okuyup anlayabilir:")
-    print("📊 Excel (.xlsx, .xls) - Satış verileri, tablolar, hesaplamalar")
-    print("📋 CSV - Yapılandırılmış veriler")  
-    print("📄 PDF - Raporlar, dökümanlar")
-    print("📝 Word (.docx) - Metinler, prosedürler")
-    print("=" * 80)
-    
-    DATA_FOLDER = "company_data"
-    universal_system = UniversalAISystem(DATA_FOLDER)
-    
-    if universal_system.knowledge_proc.index is not None:
-        print("\n" + "🎉" * 20)
-        print("UNIVERSAL AI ASSISTANT HAZIR!")
-        print("🌐 Tarayıcı: http://localhost:5000")
-        print("📊 Durum: http://localhost:5000/api/status")
-        print("=" * 60)
-        print("ÖRNEK SORULAR:")
-        print("• 'X mağazasının Y tarihindeki satışı nedir?'")
-        print("• 'En yüksek satış yapan mağaza hangisi?'")
-        print("• 'Bu ayki toplam satış ne kadar?'")
-        print("• 'İnternet sorunu nasıl çözülür?'")
-        print("• 'Hangi dosyalarda müşteri bilgisi var?'")
-        print("• 'sales.xlsx dosyasındaki tüm mağazaların büyüme oranlarını karşılaştır'")
-        print("• 'Departman grafiği göster'")
-        print("🎉" * 20)
-        app.run(debug=True, host='0.0.0.0', port=5000)
-    else:
-        print("\n❌ SISTEM BAŞLATILAMADI!")
-        print("Lütfen 'company_data' klasörünü ve dosyalarını kontrol edin.")
+    print("\n" + "=" * 60)
+    print("🌐 Lokal geliştirme sunucusu başlatılıyor...")
+    print("   Tarayıcı: http://localhost:5000")
+    print("   Durum: http://localhost:5000/api/status")
+    print("=" * 60)
+    # Production'da Gunicorn zaten kendi ayarlarını kullanacağı için buradaki host/port/debug
+    # sadece lokal geliştirme içindir. debug=False kullanmak daha güvenlidir.
+    app.run(host='0.0.0.0', port=5000, debug=False)
